@@ -5,7 +5,6 @@
 Ritmo calmo de propósito (pausa entre envios, poll folgado, limite de operações simultâneas):
 volume em rajada é o que derruba conta e estoura cota."""
 import os
-import shutil
 import time
 
 from .leva import fmt_n
@@ -24,7 +23,10 @@ def fase_masters(leva, pastas, estado, gerador, forcar=False):
         if os.path.exists(destino) and not forcar:
             continue
         if p.get("_master_path"):  # imagem que você já criou no Flow: vira o master sem gerar nada
-            shutil.copyfile(p["_master_path"], destino)
+            from PIL import Image
+            im = Image.open(p["_master_path"]).convert("RGB")
+            im.thumbnail((1080, 1920))  # foto de 3000x5000 só pesa no envio; 1080x1920 basta de referência
+            im.save(destino)
             st.update(arquivo=destino, origem="arquivo")
             _log(f"  master {pk}: copiado de {p['master_arquivo']}")
         else:
@@ -35,7 +37,22 @@ def fase_masters(leva, pastas, estado, gerador, forcar=False):
         estado.salvar()
 
 
+class ParadaSeguidas(SystemExit):
+    pass
+
+
+def _falhas_seguidas(contador, erro, limite=3):
+    """Os primeiros pedidos falhando todos = problema de conta/chave/cota, não de conteúdo: para e mostra o motivo."""
+    contador.append(erro)
+    if len(contador) >= limite:
+        raise ParadaSeguidas(
+            f"\n❌ {limite} falhas seguidas logo no início — parei para não insistir à toa.\n   Motivo: {erro}\n"
+            "   Causas comuns: faturamento não ativado no Google AI Studio, cota do plano gratuito (429/quota), "
+            "chave inválida (401/403/API key).")
+
+
 def fase_frames(leva, pastas, estado, gerador, so=None, pausa=1.0):
+    falhas = []  # vira None ao primeiro sucesso: daí em diante falha é por cena, não de conta
     for ad in leva["ads"]:
         if so and ad["id"] not in so:
             continue
@@ -54,10 +71,14 @@ def fase_frames(leva, pastas, estado, gerador, so=None, pausa=1.0):
             try:
                 gerador.imagem(c["prompt_frame"], ref, destino)
                 estado.cena(c["chave"]).update(frame=destino, status="frame_ok")
+                falhas[:] = [None]
             except Exception as e:  # recusa de conteúdo, cota, rede: registra e segue a leva
                 st = estado.cena(c["chave"])
                 st.update(status="frame_falhou", erro=str(e)[:300])
                 _log(f"    ✗ {e}")
+                estado.salvar()
+                if falhas != [None]:
+                    _falhas_seguidas(falhas, str(e)[:400])
             estado.salvar()
             time.sleep(pausa)
 
@@ -75,6 +96,7 @@ def fase_videos(leva, pastas, estado, gerador, so=None, max_simultaneos=4, inter
             fila.append(c)
     estado.salvar()
     em_voo = {k: v for k, v in estado.dados["cenas"].items() if v.get("status") == "enviado" and v.get("op")}
+    falhas_envio = []  # vira [None] no primeiro envio aceito
 
     def enviar(c):
         st = estado.cena(c["chave"])
@@ -86,10 +108,14 @@ def fase_videos(leva, pastas, estado, gerador, so=None, max_simultaneos=4, inter
             op = gerador.enviar_video(c["prompt_video"], frame, pastas.clipe(c["chave"]))
             st.update(status="enviado", op=op, tentativas=st.get("tentativas", 0) + 1, erro="")
             em_voo[c["chave"]] = st
+            falhas_envio[:] = [None]
             _log(f"  ▶ enviado {c['chave']} (tentativa {st['tentativas']})")
         except Exception as e:
             st.update(status="falhou", tentativas=st.get("tentativas", 0) + 1, erro=str(e)[:300])
             _log(f"  ✗ envio {c['chave']}: {e}")
+            estado.salvar()
+            if falhas_envio != [None] and not em_voo:
+                _falhas_seguidas(falhas_envio, str(e)[:400])
         estado.salvar()
         time.sleep(pausa_envio)
         return True
