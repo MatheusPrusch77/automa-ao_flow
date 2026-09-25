@@ -111,7 +111,9 @@ def test_estado_persistente(tmp_path):
 
 
 @pytest.mark.lento
-def test_ponta_a_ponta_simulado_insert_primeiro(tmp_path):
+def test_ponta_a_ponta_simulado_insert_primeiro(tmp_path, monkeypatch):
+    # o áudio simulado são bipes, não fala: sem whisper o teste fica determinístico (e não depende de GPU/modelo)
+    monkeypatch.setenv("SEM_WHISPER", "1")
     from fabrica import ritmo
     from fabrica.geradores.simulado import GeradorSimulado
     from fabrica.producao import fase_frames, fase_masters, fase_videos

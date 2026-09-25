@@ -44,13 +44,27 @@ def palavras(path, idioma="pt"):
     return None
 
 
-def _faster(path, idioma):
-    global _modelo
+def _carregar_modelo(device):
     from faster_whisper import WhisperModel
+    return WhisperModel(os.environ.get("WHISPER_TAMANHO", "small"), device=device, compute_type="int8")
+
+
+def _faster(path, idioma):
+    """WHISPER_DEVICE=auto|cpu|cuda (default auto). Com placa NVIDIA mas sem as DLLs do CUDA
+    (cublas/cudnn), o erro só aparece na transcrição: aí cai para CPU e segue."""
+    global _modelo
     if _modelo is None:
-        _modelo = WhisperModel(os.environ.get("WHISPER_TAMANHO", "small"), device="auto", compute_type="int8")
-    segs, _ = _modelo.transcribe(path, language=idioma, word_timestamps=True, vad_filter=False)
-    return [(w.word.strip(), w.start, w.end) for s in segs for w in (s.words or []) if w.word.strip()]
+        _modelo = _carregar_modelo(os.environ.get("WHISPER_DEVICE", "auto"))
+    try:
+        segs, _ = _modelo.transcribe(path, language=idioma, word_timestamps=True, vad_filter=False)
+        return [(w.word.strip(), w.start, w.end) for s in segs for w in (s.words or []) if w.word.strip()]
+    except RuntimeError as e:
+        if not any(k in str(e).lower() for k in ("cublas", "cudnn", "cuda")):
+            raise
+        print("  (whisper: GPU sem bibliotecas CUDA — usando CPU)", flush=True)
+        _modelo = _carregar_modelo("cpu")
+        segs, _ = _modelo.transcribe(path, language=idioma, word_timestamps=True, vad_filter=False)
+        return [(w.word.strip(), w.start, w.end) for s in segs for w in (s.words or []) if w.word.strip()]
 
 
 def _cpp(path, idioma):
