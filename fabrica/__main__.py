@@ -89,9 +89,11 @@ def _gerador(a, estado=None):
         if not anterior and algo_pronto and a.gerador != "simulado":
             sys.exit("❌ esta pasta já tem imagens/clipes de antes, sem registro de qual gerador fez. "
                      "Use uma pasta nova para produzir de verdade.")
+    g = obter(a.gerador)  # só registra o gerador na leva depois que ele abriu (chave ok)
+    if estado is not None:
         estado.dados["gerador"] = a.gerador
         estado.salvar()
-    return obter(a.gerador)
+    return g
 
 
 def cmd_masters(a):
