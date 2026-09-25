@@ -227,6 +227,7 @@ def montar_ad(ad, pastas, idioma="pt", opcoes=None, indice=0, log=print):
     for c in cenas:
         if c.get("insert_gancho"):
             continue
+        log(f"   {c['chave']}…")
         p = preparar(c)
         desloc = 0.0
         if c.get("gancho") and insert:

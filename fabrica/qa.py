@@ -90,14 +90,15 @@ def checar_clipe(caminho, fala="", frame_base=None, idioma="pt"):
     return r
 
 
-def gate_clipes(leva, pastas, so=None):
+def gate_clipes(leva, pastas, so=None, log=print):
     resultado = {}
-    for ad in leva["ads"]:
-        if so and ad["id"] not in so:
-            continue
-        for c in ad["cenas"]:
-            resultado[c["chave"]] = checar_clipe(pastas.clipe(c["chave"]), c.get("fala", ""), pastas.frame(c["chave"]),
-                                                 leva["idioma"])
+    cenas = [c for ad in leva["ads"] if not so or ad["id"] in so for c in ad["cenas"]]
+    if transcricao.disponivel():
+        log("   (whisper ouvindo as falas — na 1ª vez ele baixa o modelo, ~500 MB, e pode levar alguns minutos)")
+    for i, c in enumerate(cenas, 1):
+        log(f"   [{i}/{len(cenas)}] {c['chave']}")
+        resultado[c["chave"]] = checar_clipe(pastas.clipe(c["chave"]), c.get("fala", ""), pastas.frame(c["chave"]),
+                                             leva["idioma"])
     with open(os.path.join(pastas.qa, "GATE-CLIPES.json"), "w", encoding="utf-8") as f:
         json.dump(resultado, f, ensure_ascii=False, indent=1)
     return resultado
