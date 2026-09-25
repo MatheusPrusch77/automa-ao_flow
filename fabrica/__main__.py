@@ -76,15 +76,28 @@ def cmd_validar(a):
     sys.exit(0 if rel.ok else 1)
 
 
-def _gerador(a):
+def _gerador(a, estado=None):
+    """Uma leva nasce e termina no mesmo gerador: misturar clipes simulados com clipes reais
+    (ou reaproveitar a pasta de um ensaio) monta vídeo com bipe no lugar da fala."""
     from .geradores import obter
+    if estado is not None:
+        anterior = estado.dados.get("gerador")
+        if anterior and anterior != a.gerador:
+            sys.exit(f"❌ esta leva foi gerada com o gerador '{anterior}', não '{a.gerador}'. "
+                     f"Use uma pasta nova (ex.: levas\\2026-09-26) em vez de reaproveitar a do ensaio.")
+        algo_pronto = any(os.listdir(d) for d in (Pastas(a.pasta).masters, Pastas(a.pasta).frames, Pastas(a.pasta).clips) if os.path.isdir(d))
+        if not anterior and algo_pronto and a.gerador != "simulado":
+            sys.exit("❌ esta pasta já tem imagens/clipes de antes, sem registro de qual gerador fez. "
+                     "Use uma pasta nova para produzir de verdade.")
+        estado.dados["gerador"] = a.gerador
+        estado.salvar()
     return obter(a.gerador)
 
 
 def cmd_masters(a):
     from .producao import fase_masters
     leva, pastas, estado = _carregar(a.pasta)
-    fase_masters(leva, pastas, estado, _gerador(a), forcar=a.refazer)
+    fase_masters(leva, pastas, estado, _gerador(a, estado), forcar=a.refazer)
     print(f"🚦 grade: {qa.grade_masters(leva, pastas)}")
 
 
@@ -92,7 +105,7 @@ def cmd_frames(a):
     from .producao import fase_frames
     leva, pastas, estado = _carregar(a.pasta)
     _exige_aprovacao(estado, "masters", a)
-    fase_frames(leva, pastas, estado, _gerador(a), so=_so(a))
+    fase_frames(leva, pastas, estado, _gerador(a, estado), so=_so(a))
     print(f"🚦 grade: {qa.grade_frames(leva, pastas, _so(a))}")
 
 
@@ -100,7 +113,7 @@ def cmd_videos(a):
     from .producao import fase_videos, listar_falhas, resumo
     leva, pastas, estado = _carregar(a.pasta)
     _exige_aprovacao(estado, "frames", a)
-    fase_videos(leva, pastas, estado, _gerador(a), so=_so(a), max_simultaneos=a.max, intervalo_poll=a.poll,
+    fase_videos(leva, pastas, estado, _gerador(a, estado), so=_so(a), max_simultaneos=a.max, intervalo_poll=a.poll,
                 esperar=not a.sem_esperar)
     print(resumo(leva, estado))
     for f in listar_falhas(leva, estado):
@@ -121,7 +134,7 @@ def cmd_produzir(a):
     so = _so(a)
     n_clipes = sum(len(ad["cenas"]) for ad in leva["ads"] if not so or ad["id"] in so)
     print(f"▶ {len(leva['ads'])} vídeos · {n_clipes} clipes de 8s (~{n_clipes * 8}s de vídeo gerado) · gerador {a.gerador}")
-    g = _gerador(a)
+    g = _gerador(a, estado)
     print("1/5 masters (fotos dos avatares)")
     fase_masters(leva, pastas, estado, g)
     print("2/5 frames de cada cena")

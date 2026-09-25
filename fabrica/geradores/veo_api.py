@@ -23,6 +23,10 @@ class GeradorVeoAPI:
         except ImportError as e:
             raise SystemExit("instale o SDK: pip install google-genai") from e
         self.types = types
+        vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("1", "true")
+        if not vertex and not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+            raise SystemExit('❌ chave da API não encontrada. No cmd: setx GEMINI_API_KEY "SUA_CHAVE", '
+                             "feche e abra o cmd de novo (a chave só vale nas janelas abertas depois do setx).")
         self.client = genai.Client()
         self.modelo_imagem = modelo_imagem or os.environ.get("FABRICA_MODELO_IMAGEM", "gemini-2.5-flash-image")
         self.modelo_video = modelo_video or os.environ.get("FABRICA_MODELO_VIDEO", "veo-3.1-fast-generate-preview")
