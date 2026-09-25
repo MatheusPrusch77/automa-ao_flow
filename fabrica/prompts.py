@@ -99,3 +99,43 @@ def prompt_video(cena, persona, idioma="pt"):
     if fala and len(fala.split()) < 15:  # fala curta: sem isso o gerador inventa frases no tempo que sobra do clipe
         fala_blk += " The person says ONLY this sentence, then stops talking and silently continues the action."
     return f"{corpo} {regras} {fala_blk}".replace("  ", " ").strip()
+
+
+RESTRICOES_CRU = ("No text overlays. No captions. No subtitles. No logos. No VFX glow. No 3D render look. No cartoon look. "
+                  "No beauty filter. No face morphing. No identity drift. No flicker. No jitter. No warped hands. "
+                  "No extra fingers. No frozen or repeated padding frames.")
+
+
+def prompt_video_cru(cena, persona, idioma="en"):
+    """Formato "filmagem crua de celular" (o padrão de prompt que o dono usa no Flow):
+    blocos Character / Action / Voice / Audio / Dialogue / Constraints."""
+    tipo = cena.get("tipo") or ""
+    persona = persona or {}
+    lingua = IDIOMAS.get(idioma, idioma)
+    cenario = persona.get("cenario") or "a home setting"
+    fala = (cena.get("fala") or "").strip()
+    acao = _frase(cena.get("prompt_video_custom") or cena["acao"])
+    acao = acao[:1].upper() + acao[1:]
+    if tipo in TIPOS and tipo not in ("I", "D") and not cena.get("gancho"):
+        acao += " " + TIPOS[tipo]
+    partes = ["Create an 8 second vertical 9:16 clip. Raw amateur smartphone footage from a phone propped at eye level, "
+              f"in {cenario}. No AI beauty filter, no skin smoothing, no HDR, no cinematic polish."]
+    if tipo == "I":
+        partes.append("Shot: close-up insert of hands and objects only, no face and no person visible.")
+    else:
+        partes.append("Character: the same person as in the reference image, same face, hair, outfit and setting.")
+    abre = ("The narration is already being spoken from the very first frame. " if tipo == "I" else
+            "The clip opens with the dialogue already being spoken from the very first frame, no pause before it. ")
+    partes.append(f"Action: {abre}{acao} Fill the full 8 seconds. Do not cut early. Do not repeat or freeze frames.")
+    if fala:
+        partes.append(f"Voice: {persona.get('voz', '')}, speaking {lingua}"
+                      + (", off-camera narration." if tipo == "I" else "."))
+    partes.append("Audio: Realistic phone-recorded audio, voice close and natural, light room ambience, no music, no studio polish."
+                  if fala else "Audio: ambient sound only, no voice, no music.")
+    if fala:
+        dial = f'Dialogue: "{fala}"'
+        if len(fala.split()) < 15:
+            dial += " The person says ONLY this line, then stops talking and silently continues the action."
+        partes.append(dial)
+    partes.append(f"Constraints: {RESTRICOES_CRU}")
+    return "\n\n".join(partes)

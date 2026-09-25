@@ -199,3 +199,15 @@ def test_palavra_na_tela_acha_o_momento():
     ws = [(w, i * 0.4, i * 0.4 + 0.3) for i, w in enumerate(fala.split())]
     assert montagem.tempo_de_frase(fala, "soda", 0.0, 8.0, ws) == (0.4, 0.7)
     assert montagem.tempo_de_frase(fala, "banana", 0.0, 8.0) is None
+
+
+def test_estilo_cru_no_formato_do_dono(tmp_path):
+    from fabrica.gerador_leva import gerar
+    (tmp_path / "ana.png").write_bytes(b"x")
+    leva, _ = gerar(_modelo_soda(), {"Ana": AVATARES_TESTE["Ana"]}, por_avatar=1, semente=1, base_avatares=str(tmp_path))
+    norm, rel = L.normalizar(leva)
+    assert rel.ok, rel.texto()
+    pv = norm["ads"][0]["cenas"][-1]["prompt_video"]
+    for bloco in ("Character:", "Action:", "Voice:", "Audio:", "Dialogue:", "Constraints:"):
+        assert bloco in pv
+    assert "Comment soda" in pv

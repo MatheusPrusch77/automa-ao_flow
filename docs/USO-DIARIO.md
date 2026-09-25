@@ -12,7 +12,25 @@ combinação de um dia para o outro. Arquivos por vídeo: `_1` a `_4` (e `_0` qu
 2. Confira `exemplos\avatares.json`: nome, arquivo, sexo (`f`/`m`), voz e cenário de cada um.
    Para incluir um avatar novo, copie uma linha e ajuste. A `voz` precisa ficar sempre igual.
 
-## Todo dia
+## Modo automático (API do Google): um comando por dia
+
+Com a chave da API configurada (`setx GEMINI_API_KEY "SUA_CHAVE"`, depois feche e reabra o cmd),
+a fábrica faz tudo sozinha — gera a leva, as imagens de cada cena com a foto do avatar como
+referência, os vídeos com a fala, confere, monta e deixa os finais na pasta:
+
+```cmd
+python -m fabrica produzir levas\2026-09-26
+start levas\2026-09-26\finais
+```
+
+- Comece pequeno: `--avatares-so Alice,Frank` (6 vídeos).
+- Para conferir as imagens antes de gastar com vídeo: `--parar-nos-frames`, olhe
+  `qa\GRADE-FRAMES.jpg` e rode o mesmo comando de novo sem a flag (ele continua de onde parou).
+- Caiu no meio? Rode o mesmo comando de novo: nada do que já está pronto é refeito.
+- Custo: cada vídeo são 4-5 clipes de 8s gerados pelo Veo. Confira o preço por segundo na página
+  de preços do Gemini API antes de escalar.
+
+## Modo manual (Flow), todo dia
 
 Abra o cmd na pasta do projeto:
 

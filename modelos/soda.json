@@ -3,55 +3,101 @@
   "idioma": "en",
   "formato": "curto",
   "fala_min": 8,
+  "estilo_prompt": "cru",
   "montagem": {
     "legenda": false,
     "headline": false,
     "cta": false,
     "min_dur": 15,
-    "palavras_tela": ["soda", "follow me"],
+    "palavras_tela": [
+      "soda",
+      "follow me"
+    ],
     "palavras_tela_so_final": true
   },
-
   "versoes": [
-    {"nome": "barriga", "falas": [
-      "This is the baking soda trick everyone over 40 is trying for their belly.",
-      "One teaspoon of baking soda, half a lemon, and a pinch of salt.",
-      "But almost everyone's missing the one ingredient that changes everything."]},
-    {"nome": "costas", "falas": [
-      "Everyone's asking me what baking soda does to back fat.",
-      "Baking soda, half a lemon, a pinch of salt. That's the part you've seen online.",
-      "The part nobody shows you is the secret ingredient."]},
-    {"nome": "gordura", "falas": [
-      "You've probably seen the baking soda and lemon recipe.",
-      "Here's what they don't tell you: on its own, it's not the part that matters.",
-      "There's one ingredient that makes the whole thing work."]}
+    {
+      "nome": "barriga",
+      "falas": [
+        "This is the baking soda trick everyone over 40 is trying for their belly.",
+        "One teaspoon of baking soda, half a lemon, and a pinch of salt.",
+        "But almost everyone's missing the one ingredient that changes everything."
+      ]
+    },
+    {
+      "nome": "costas",
+      "falas": [
+        "Everyone's asking me what baking soda does to back fat.",
+        "Baking soda, half a lemon, a pinch of salt. That's the part you've seen online.",
+        "The part nobody shows you is the secret ingredient."
+      ]
+    },
+    {
+      "nome": "gordura",
+      "falas": [
+        "You've probably seen the baking soda and lemon recipe.",
+        "Here's what they don't tell you: on its own, it's not the part that matters.",
+        "There's one ingredient that makes the whole thing work."
+      ]
+    }
   ],
-
   "cta_fala": "Comment soda and I'll send you the secret ingredient that makes this 10 times stronger. Follow me first so I can reach you.",
-
   "ganchos": [
-    {"mecanica": "ESTRANHO", "acao_visual": "{S} tips a whole box of white powder into a giant glass bowl on the counter, the powder cascading in a thick stream, looking straight into the lens, already speaking."},
-    {"mecanica": "ACAO", "acao_visual": "{S} drops a spoonful of white powder into a tall glass of lemon water and it fizzes up violently, foam overflowing onto the counter, while {s} speaks to the lens."},
-    {"mecanica": "ESTRANHO", "acao_visual": "{S} stands behind a counter covered with dozens of lemons and a tower of plain white boxes stacked high, speaking to the lens."},
-    {"mecanica": "ACAO", "acao_visual": "{S} sets down an oversized wooden spoon heaped with white powder on the counter, a small cloud of powder puffing up, then speaks to the lens."},
-    {"mecanica": "SPLIT", "acao_visual": "{S} holds up a tall glass of cloudy lemon water and speaks to the lens.", "insert_visual": "macro: a spoon of white powder drops into a glass of lemon water, the glass fizzing hard and foam overflowing onto the counter"},
-    {"mecanica": "INSERT_PRIMEIRO", "acao_visual": "{S} looks up from the counter and speaks to the lens, a glass of lemon water in hand.", "insert_visual": "macro: a hand squeezes half a lemon hard over a tall glass, juice spraying, next to a pile of white powder"},
-    {"mecanica": "ESTRANHO", "acao_visual": "{S} holds a huge glass jug overflowing with fizzing foam that spills over {pos} hands onto the counter, speaking to the lens."},
-    {"mecanica": "SPLIT", "acao_visual": "{S} leans toward the lens with a curious look and speaks, medium shot.", "insert_visual": "macro: a big pile of white powder, half a lemon and a pinch of salt lined up on a wooden board, a hand sliding a glass beside them"}
+    {
+      "mecanica": "ESTRANHO",
+      "acao_visual": "{S} tips a whole box of white powder into a giant glass bowl on the counter, the powder cascading in a thick stream, looking straight into the lens, already speaking."
+    },
+    {
+      "mecanica": "ACAO",
+      "acao_visual": "{S} drops a spoonful of white powder into a tall glass of lemon water and it fizzes up violently, foam overflowing onto the counter, while {s} speaks to the lens."
+    },
+    {
+      "mecanica": "ESTRANHO",
+      "acao_visual": "{S} stands behind a counter covered with dozens of lemons and a tower of plain white boxes stacked high, speaking to the lens."
+    },
+    {
+      "mecanica": "ACAO",
+      "acao_visual": "{S} sets down an oversized wooden spoon heaped with white powder on the counter, a small cloud of powder puffing up, then speaks to the lens."
+    },
+    {
+      "mecanica": "SPLIT",
+      "acao_visual": "{S} holds up a tall glass of cloudy lemon water and speaks to the lens.",
+      "insert_visual": "macro: a spoon of white powder drops into a glass of lemon water, the glass fizzing hard and foam overflowing onto the counter"
+    },
+    {
+      "mecanica": "INSERT_PRIMEIRO",
+      "acao_visual": "{S} looks up from the counter and speaks to the lens, a glass of lemon water in hand.",
+      "insert_visual": "macro: a hand squeezes half a lemon hard over a tall glass, juice spraying, next to a pile of white powder"
+    },
+    {
+      "mecanica": "ESTRANHO",
+      "acao_visual": "{S} holds a huge glass jug overflowing with fizzing foam that spills over {pos} hands onto the counter, speaking to the lens."
+    },
+    {
+      "mecanica": "SPLIT",
+      "acao_visual": "{S} leans toward the lens with a curious look and speaks, medium shot.",
+      "insert_visual": "macro: a big pile of white powder, half a lemon and a pinch of salt lined up on a wooden board, a hand sliding a glass beside them"
+    }
   ],
-
   "preparos": [
     "medium shot at the counter: {s} stirs a spoon of white powder into a glass of lemon water, the surface fizzing, talking to the lens",
     "close-up: {s} squeezes half a lemon into a glass, then adds a pinch of salt, speaking to the lens",
     "medium shot: {s} holds a teaspoon of white powder above a glass of warm water and tips it in, bubbles rising, speaking to the lens"
   ],
-
   "explicacoes": [
-    {"tipo": "T-close", "acao": "{s} holds the glass beside {pos} face and speaks to the lens with a knowing look"},
-    {"tipo": "T-3/4", "acao": "{s} turns from the counter toward the lens, glass in hand, and speaks with a raised eyebrow"},
-    {"tipo": "L", "acao": "{s} now leans by the window of the same place, glass in hand, speaking to the lens"}
+    {
+      "tipo": "T-close",
+      "acao": "{s} holds the glass beside {pos} face and speaks to the lens with a knowing look"
+    },
+    {
+      "tipo": "T-3/4",
+      "acao": "{s} turns from the counter toward the lens, glass in hand, and speaks with a raised eyebrow"
+    },
+    {
+      "tipo": "L",
+      "acao": "{s} now leans by the window of the same place, glass in hand, speaking to the lens"
+    }
   ],
-
   "ctas_visuais": [
     "{s} raises the glass toward the lens with a knowing smile, then points down toward the bottom of the frame",
     "{s} leans in close to the lens and taps the side of the glass, then points down toward the bottom of the frame",

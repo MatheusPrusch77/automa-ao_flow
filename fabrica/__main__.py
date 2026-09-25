@@ -107,6 +107,56 @@ def cmd_videos(a):
         print("  ✗", f)
 
 
+def cmd_produzir(a):
+    """Tudo de uma vez: (gera a leva, se faltar) → masters → frames → vídeos → QA → montagem → ritmo."""
+    from .montagem import Opcoes, montar_ad
+    from .producao import fase_frames, fase_masters, fase_videos, listar_falhas, resumo
+    pastas = Pastas(a.pasta)
+    if not os.path.exists(pastas.leva_json):
+        from .gerador_leva import gerar_em_disco
+        so_av = set(a.avatares_so.split(",")) if a.avatares_so else None
+        destino, n = gerar_em_disco(a.modelo, a.avatares, a.pasta, a.por_avatar, None, so_av)
+        print(f"✓ leva gerada: {n} vídeos em {destino}")
+    leva, pastas, estado = _carregar(a.pasta)
+    so = _so(a)
+    n_clipes = sum(len(ad["cenas"]) for ad in leva["ads"] if not so or ad["id"] in so)
+    print(f"▶ {len(leva['ads'])} vídeos · {n_clipes} clipes de 8s (~{n_clipes * 8}s de vídeo gerado) · gerador {a.gerador}")
+    g = _gerador(a)
+    print("1/5 masters (fotos dos avatares)")
+    fase_masters(leva, pastas, estado, g)
+    print("2/5 frames de cada cena")
+    fase_frames(leva, pastas, estado, g, so=so)
+    print(f"   grade para conferir: {qa.grade_frames(leva, pastas, so)}")
+    if a.parar_nos_frames:
+        print("⏸ parei nos frames (--parar-nos-frames). Confira a grade e rode de novo sem a flag.")
+        return
+    print("3/5 vídeos")
+    fase_videos(leva, pastas, estado, g, so=so, max_simultaneos=a.max, intervalo_poll=a.poll)
+    print("   ", resumo(leva, estado))
+    for f in listar_falhas(leva, estado):
+        print("   ✗", f)
+    print("4/5 QA dos clipes")
+    res = qa.gate_clipes(leva, pastas, so)
+    for k, v in res.items():
+        if not v.get("aprovado"):
+            print(f"   ⚠️ {k}: {'; '.join(v.get('problemas', []))}")
+    print("5/5 montagem")
+    op = Opcoes.da_leva(leva.get("montagem"))
+    prontos = 0
+    for i, ad in enumerate(leva["ads"]):
+        if so and ad["id"] not in so:
+            continue
+        try:
+            final = montar_ad(ad, pastas, leva["idioma"], op, indice=i)
+            r = ritmo.medir(final)
+            prontos += 1
+            if not r["aprovado"]:
+                print(f"   ⚠️ ritmo {ad['id']}: {'; '.join(r['problemas'])}")
+        except Exception as e:
+            print(f"   ✗ {ad['id']}: {e}")
+    print(f"✅ {prontos} vídeos prontos em {pastas.finais}")
+
+
 def cmd_aprovar(a):
     _, pastas, estado = _carregar(a.pasta, exigir_ok=False)
     estado.dados.setdefault("aprovacoes", {})[a.etapa] = True
@@ -232,6 +282,17 @@ def main(argv=None):
             p.add_argument("--max", type=int, default=4, help="operações simultâneas")
             p.add_argument("--poll", type=float, default=20.0, help="segundos entre polls")
             p.add_argument("--sem-esperar", action="store_true", help="envia e sai; rode de novo depois pra baixar")
+    p = novo("produzir", cmd_produzir, "faz tudo: gera a leva (se faltar), imagens, vídeos, QA e montagem")
+    p.add_argument("pasta", help="pasta da leva do dia, ex.: levas/2026-09-26")
+    p.add_argument("--gerador", default="veo", help="veo | simulado")
+    p.add_argument("--modelo", default=os.path.join(os.path.dirname(AQUI), "modelos", "soda.json"))
+    p.add_argument("--avatares", default=os.path.join(os.path.dirname(AQUI), "exemplos", "avatares.json"))
+    p.add_argument("--avatares-so", help="só estes avatares ao gerar a leva: Alice,Frank")
+    p.add_argument("--por-avatar", type=int, default=3)
+    p.add_argument("--so", help="só estes vídeos: alice-1,frank-2")
+    p.add_argument("--max", type=int, default=4, help="vídeos gerando ao mesmo tempo")
+    p.add_argument("--poll", type=float, default=20.0)
+    p.add_argument("--parar-nos-frames", action="store_true", help="para depois das imagens, antes de gastar com vídeo")
     p = novo("aprovar", cmd_aprovar, "marca um gate como aprovado (masters | frames)")
     p.add_argument("pasta"); p.add_argument("etapa", choices=["masters", "frames"])
     p = novo("refazer", cmd_refazer, "apaga clipe (e opcionalmente frame) de cenas para regerar")

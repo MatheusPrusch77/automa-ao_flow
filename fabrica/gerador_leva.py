@@ -89,7 +89,7 @@ def gerar(modelo, avatares, por_avatar=3, semente=None, historico=None, base_ava
             })
             novos.setdefault(pk, []).append([v, g, p, e, c])
     leva = {"idioma": modelo.get("idioma", "en"), "formato": modelo.get("formato", "curto"),
-            "fala_min": modelo.get("fala_min", 15), "montagem": modelo.get("montagem", {}),
+            "fala_min": modelo.get("fala_min", 15), "estilo_prompt": modelo.get("estilo_prompt", "padrao"), "montagem": modelo.get("montagem", {}),
             "personas": personas, "itens": itens}
     return leva, novos
 

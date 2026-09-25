@@ -96,6 +96,7 @@ def normalizar(dados, base="."):
     curto = dados.get("formato") == "curto"  # 15-30s, 1 avatar com vários vídeos no dia: relaxa as regras de corpo longo
     # fala curta (< 15) só com fala_min explícito: o prompt manda calar e a montagem corta na última palavra do roteiro
     fala_min = max(8, int(dados.get("fala_min", FALA_MIN)))
+    estilo = dados.get("estilo_prompt", "padrao")  # "cru" = filmagem de celular em blocos (Character/Action/Voice/…)
     personas = dados.get("personas") or {}
     if not personas:
         rel.erros.append("leva sem 'personas'")
@@ -185,7 +186,7 @@ def normalizar(dados, base="."):
             p = personas.get(c.get("persona"), {})
             c["chave"] = chave(ad, c["n"])
             c["prompt_frame"] = P.prompt_frame(c, p)
-            c["prompt_video"] = P.prompt_video(c, p, idioma)
+            c["prompt_video"] = (P.prompt_video_cru if estilo == "cru" else P.prompt_video)(c, p, idioma)
             c["usa_master"] = c.get("tipo") != "I" and bool(c.get("persona"))
             if len(c["acao"]) > PROMPT_MAX:
                 rel.avisos.append(f"{ad} cena {fmt_n(c['n'])}: acao com {len(c['acao'])} chars (>{PROMPT_MAX}) — prompt longo dispara recusa")
