@@ -1,0 +1,66 @@
+{
+  "idioma": "pt",
+  "cta": "TOQUE E CONFIRA",
+  "_leia": "Modelo de leva dinâmica. Cada ad = 1 persona + 1 cenário marcantes, gancho separado (vira o clipe 1), corpo com TIPO em toda cena (T-close/T-aberto/T-3/4/T-cta/D/I/L), nunca 3 iguais seguidos. Prompts visuais em inglês, fala no idioma do público com 15-26 palavras. Copie a estrutura, não o conteúdo.",
+  "personas": {
+    "ana": {
+      "descricao_visual": "a striking Brazilian woman in her early 30s, long dark wavy hair, defined brows, terracotta lipstick, a mustard-yellow linen shirt with rolled sleeves and small gold hoop earrings",
+      "cenario": "a bright apartment kitchen with light-wood counters, green plants and a wide window over the city, warm morning sun",
+      "voz": "woman around 32, warm mid-pitched voice, lively natural pace, native Brazilian accent, no narrator cadence"
+    },
+    "carlos": {
+      "descricao_visual": "a fit Brazilian man in his early 40s, short salt-and-pepper hair, trimmed beard, a navy polo shirt and a steel wristwatch",
+      "cenario": "a sunny rooftop terrace with a stone floor, potted palms and the sea on the horizon, late afternoon golden light",
+      "voz": "man around 42, deep relaxed voice, confident unhurried pace, native Brazilian accent, no narrator cadence"
+    }
+  },
+  "itens": [
+    {
+      "id": "AD-01",
+      "headline": "3 MINUTOS DE MANHÃ QUE MUDARAM MINHA ROTINA",
+      "header_estilo": "vermelho/branco",
+      "gancho": {
+        "mecanica": "ESTRANHO",
+        "persona": "ana",
+        "acao_visual": "She sweeps dozens of empty takeaway coffee cups off the wooden counter into a big open bin, cups tumbling mid-air, while a single glass bottle of green smoothie stands alone beside her; she looks straight into the lens, already speaking.",
+        "gancho_fala": "Eu gastava uma fortuna com café de rua toda manhã, até descobrir que dava pra resolver isso em três minutos na minha própria cozinha."
+      },
+      "cenas": [
+        {"n": 2, "tipo": "T-close", "persona": "ana", "acao": "she talks to the lens, one hand resting on the counter beside the bottle",
+         "fala": "Eu saía de casa correndo, sem tomar nada, e às dez horas já estava sem energia nenhuma pra trabalhar direito."},
+        {"n": 3, "tipo": "I", "persona": "ana", "acao": "macro on the wooden counter: a compact portable blender bottle fills with spinach, banana slices and oat milk, the lid clicks shut",
+         "fala": "Aí eu comecei a usar esse liquidificador portátil. Coloco tudo na noite anterior e deixo pronto na geladeira."},
+        {"n": 4, "tipo": "D", "persona": "ana", "acao": "medium shot at the counter: she presses the button on the portable blender and the green mix swirls fast inside",
+         "fala": "De manhã é só apertar um botão. Em trinta segundos está pronto, e eu levo ele comigo na bolsa pro trabalho."},
+        {"n": 5, "tipo": "L", "persona": "ana", "acao": "she now stands by the big window of the same kitchen, leaning on the frame, bottle in hand, the city behind her",
+         "fala": "Faz dois meses que eu não compro café de rua, e sinceramente eu nem sinto falta. Minha manhã ficou muito mais leve."},
+        {"n": 6, "tipo": "T-cta", "persona": "ana", "acao": "she points down toward the bottom of the frame with a big smile",
+         "fala": "Se você também vive correndo de manhã, toca no botão aqui embaixo e confere o preço de hoje antes que acabe."}
+      ]
+    },
+    {
+      "id": "AD-02",
+      "headline": "ELE TROCOU A ACADEMIA POR 10 MINUTOS NO TERRAÇO",
+      "header_estilo": "amarelo/preto",
+      "gancho": {
+        "mecanica": "SPLIT",
+        "persona": "carlos",
+        "acao_visual": "He drops a huge pile of unused gym membership cards onto the stone floor, cards scattering at his feet, then looks up at the lens laughing.",
+        "insert_visual": "macro on the stone floor: a pair of adjustable resistance bands being stretched between two hands, the sea blurred behind",
+        "gancho_fala": "Eu paguei academia por três anos e fui talvez dez vezes. Hoje eu treino aqui no terraço, dez minutos por dia, e funciona."
+      },
+      "cenas": [
+        {"n": 2, "tipo": "T-aberto", "persona": "carlos", "acao": "wide shot on the terrace, he steps between the palms and turns to the lens, the sea behind",
+         "fala": "O problema nunca foi preguiça. Era o tempo de ir, trocar de roupa, esperar aparelho e voltar pra casa cansado."},
+        {"n": 3, "tipo": "D", "persona": "carlos", "acao": "medium shot: he stretches a resistance band across his chest in slow controlled reps while talking to the lens",
+         "fala": "Com essas faixas eu faço o treino inteiro aqui mesmo. Peito, costas, perna, tudo em dez minutos, sem sair de casa."},
+        {"n": 4, "tipo": "I", "persona": "carlos", "acao": "macro on the stone floor: a set of five colored resistance bands laid out in a fan next to a small towel",
+         "fala": "São cinco níveis de resistência, então dá pra começar leve e ir aumentando conforme o corpo vai respondendo ao treino."},
+        {"n": 5, "tipo": "T-3/4", "persona": "carlos", "acao": "three-quarter medium shot at the terrace railing, he turns from the sea back to the lens",
+         "fala": "Em dois meses eu voltei a ter disposição pra brincar com meus filhos no fim de semana, e isso não tem preço."},
+        {"n": 6, "tipo": "T-cta", "persona": "carlos", "acao": "medium shot, he points down toward the bottom edge of the frame with one hand",
+         "fala": "Deixei o link aqui embaixo. Toca no botão e confere o kit completo com o desconto que ainda está valendo hoje."}
+      ]
+    }
+  ]
+}
