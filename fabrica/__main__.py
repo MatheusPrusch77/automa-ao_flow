@@ -49,6 +49,16 @@ def cmd_nova(a):
     print(f"✓ leva criada em {pastas.raiz} — edite leva.json e rode `python -m fabrica validar {a.pasta}`")
 
 
+def cmd_gerar_leva(a):
+    from .gerador_leva import gerar_em_disco
+    so = set(a.so.split(",")) if a.so else None
+    destino, n = gerar_em_disco(a.modelo, a.avatares, a.pasta, a.por_avatar, a.semente, so)
+    print(f"✓ {n} vídeos em {destino}")
+    _, rel = L.carregar(destino)
+    print(rel.texto())
+    print(f"próximo: python -m fabrica pacote-flow {a.pasta}")
+
+
 def cmd_validar(a):
     leva, pastas, _ = _carregar(a.pasta, exigir_ok=False)
     _, rel = L.carregar(pastas.leva_json)
@@ -149,8 +159,15 @@ def cmd_qa(a):
 def cmd_montar(a):
     from .montagem import Opcoes, montar_ad
     leva, pastas, _ = _carregar(a.pasta)
-    op = Opcoes(punch_in=not a.sem_punch, legenda=not a.sem_legenda, headline=not a.sem_headline, cta=not a.sem_cta,
-                crop_wm=a.crop_wm, min_dur=a.min_dur, aparar=not a.sem_aparar)
+    op = Opcoes.da_leva(leva.get("montagem"))  # o que a leva/modelo define; as flags só desligam
+    op.punch_in &= not a.sem_punch
+    op.legenda &= not a.sem_legenda
+    op.headline &= not a.sem_headline
+    op.cta &= not a.sem_cta
+    op.aparar &= not a.sem_aparar
+    op.crop_wm |= a.crop_wm
+    if a.min_dur is not None:
+        op.min_dur = a.min_dur
     erros = 0
     for i, ad in enumerate(leva["ads"]):
         if _so(a) and ad["id"] not in _so(a):
@@ -194,6 +211,13 @@ def main(argv=None):
 
     p = novo("nova", cmd_nova, "cria a pasta da leva com um leva.json modelo")
     p.add_argument("pasta"); p.add_argument("--de", help="leva.json a copiar (default: exemplo)")
+    p = novo("gerar-leva", cmd_gerar_leva, "monta o leva.json do dia a partir de um modelo e dos seus avatares")
+    p.add_argument("pasta", help="pasta da leva do dia, ex.: levas/2026-09-26")
+    p.add_argument("--modelo", default=os.path.join(os.path.dirname(AQUI), "modelos", "soda.json"))
+    p.add_argument("--avatares", default=os.path.join(os.path.dirname(AQUI), "exemplos", "avatares.json"))
+    p.add_argument("--por-avatar", type=int, default=3)
+    p.add_argument("--so", help="só estes avatares: Alice,Frank")
+    p.add_argument("--semente", type=int, help="fixa o sorteio (repetível)")
     p = novo("validar", cmd_validar, "valida a leva e gera a tabela-prova")
     p.add_argument("pasta"); p.add_argument("--prompts", action="store_true", help="imprime todos os prompts")
     for nome, fn, ajuda in (("masters", cmd_masters, "gera as imagens-mestre (rostos)"),
@@ -223,7 +247,7 @@ def main(argv=None):
     p.add_argument("pasta"); p.add_argument("--so")
     for f in ("--sem-punch", "--sem-legenda", "--sem-headline", "--sem-cta", "--sem-aparar", "--crop-wm"):
         p.add_argument(f, action="store_true")
-    p.add_argument("--min-dur", type=float, default=60.0)
+    p.add_argument("--min-dur", type=float, default=None, help="default: o da leva, ou 60")
     p = novo("ritmo", cmd_ritmo, "mede o ritmo (trocas/min, maior plano parado, silêncio)")
     p.add_argument("alvo", help="arquivo .mp4 ou pasta"); p.add_argument("--modo", choices=["criativo", "vsl"], default="criativo")
     p = novo("status", cmd_status, "resumo do estado da leva")

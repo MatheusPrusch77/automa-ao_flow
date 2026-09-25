@@ -93,6 +93,7 @@ def normalizar(dados, base="."):
     """Devolve (leva_normalizada, relatorio). A leva normalizada tem os prompts prontos por cena."""
     rel = Relatorio()
     idioma = dados.get("idioma", "pt")
+    curto = dados.get("formato") == "curto"  # 15-30s, 1 avatar com vários vídeos no dia: relaxa as regras de corpo longo
     personas = dados.get("personas") or {}
     if not personas:
         rel.erros.append("leva sem 'personas'")
@@ -196,13 +197,13 @@ def normalizar(dados, base="."):
                     rel.avisos.append(f"{ad}: 3 cenas seguidas do tipo {corpo[j]} — nunca 3 quadros iguais seguidos")
                     break
             bases = {t.split("-")[0] for t in corpo if t}
-            if "I" not in bases:
+            if not curto and "I" not in bases:
                 rel.avisos.append(f"{ad}: nenhum insert (I) no corpo — device/mecanismo/prova sem rosto")
-            if "D" not in bases:
+            if not curto and "D" not in bases:
                 rel.avisos.append(f"{ad}: nenhuma demonstração (D) no corpo")
 
         pks = tuple(sorted({c["persona"] for c in cenas if c.get("persona")}))
-        if pks and pks in persona_por_ad:
+        if pks and pks in persona_por_ad and not curto:
             rel.avisos.append(f"{ad}: mesma persona de {persona_por_ad[pks]} — cada ad deve ter rosto/cenário próprios")
         persona_por_ad.setdefault(pks, ad)
 
@@ -219,7 +220,8 @@ def normalizar(dados, base="."):
         rel.avisos.append(f"LEVA: {len(sem_choque)}/{len(mecs)} ganchos sem elemento de choque detectado ({', '.join(sem_choque[:6])}) "
                           f"— confira à mão (o detector é por palavra)")
 
-    leva = {"idioma": idioma, "personas": personas, "ads": ads, "cta": dados.get("cta", "TOQUE E ASSISTA")}
+    leva = {"idioma": idioma, "personas": personas, "ads": ads, "cta": dados.get("cta", "TOQUE E ASSISTA"),
+            "formato": dados.get("formato", "longo"), "montagem": dados.get("montagem", {})}
     return leva, rel
 
 

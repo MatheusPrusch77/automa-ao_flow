@@ -134,3 +134,48 @@ def test_ponta_a_ponta_simulado_insert_primeiro(tmp_path, monkeypatch):
     r = ritmo.medir(final)
     assert 1.6 + 3 * 5.5 < r["duracao"] < 1.6 + 3 * 6.5  # insert de 1,6s + 3 clipes com o silêncio do fim cortado
     assert r["silencios"] == 0
+
+
+# ── gerador de leva (modelo soda) ────────────────────────────────────────────
+MODELO_SODA = os.path.join(os.path.dirname(AQUI), "modelos", "soda.json")
+AVATARES_TESTE = {"Ana": {"arquivo": "ana.png", "sexo": "f", "voz": "woman around 45, warm voice, natural American accent"},
+                  "Bob": {"arquivo": "bob.png", "sexo": "m", "voz": "man around 50, deep voice, natural American accent"}}
+
+
+def _modelo_soda():
+    with open(MODELO_SODA, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def test_modelo_soda_todas_as_falas_na_faixa():
+    m = _modelo_soda()
+    falas = [a.replace("{parte}", p) for a in m["aberturas"] for p in m["partes"]] + m["meios"] + m["ctas"]
+    fora = [(L.palavras(f), f) for f in falas if not L.FALA_MIN <= L.palavras(f) <= L.FALA_MAX]
+    assert not fora, fora
+
+
+def test_gerar_leva_valida_e_sem_repeticao(tmp_path):
+    from fabrica.gerador_leva import gerar
+    for nome in ("ana.png", "bob.png"):
+        (tmp_path / nome).write_bytes(b"x")
+    m = _modelo_soda()
+    leva, novos = gerar(m, AVATARES_TESTE, por_avatar=3, semente=7, base_avatares=str(tmp_path))
+    norm, rel = L.normalizar(leva)
+    assert rel.ok and not rel.avisos, rel.texto()
+    assert len(norm["ads"]) == 6
+    for pk in ("ana", "bob"):  # no mesmo dia: 3 ganchos e 3 aberturas diferentes por avatar
+        combos = novos[pk]
+        assert len({c[4] for c in combos}) == 3 and len({c[0] for c in combos}) == 3
+    leva2, novos2 = gerar(m, AVATARES_TESTE, 3, semente=7, historico=novos, base_avatares=str(tmp_path))
+    for pk in novos:  # dia seguinte: nenhuma combinação repetida
+        assert not {tuple(c) for c in novos[pk]} & {tuple(c) for c in novos2[pk]}
+    assert "She" in leva["itens"][0]["gancho"]["acao_visual"] and "He" in leva["itens"][3]["gancho"]["acao_visual"]
+
+
+def test_palavra_na_tela_acha_o_momento():
+    fala = "Comment soda and I'll send it to you. Follow me first so I can reach you."
+    t0, t1 = montagem.tempo_de_frase(fala, "follow me", 0.0, 8.0)
+    assert 3.0 < t0 < t1 < 6.0
+    ws = [(w, i * 0.4, i * 0.4 + 0.3) for i, w in enumerate(fala.split())]
+    assert montagem.tempo_de_frase(fala, "soda", 0.0, 8.0, ws) == (0.4, 0.7)
+    assert montagem.tempo_de_frase(fala, "banana", 0.0, 8.0) is None

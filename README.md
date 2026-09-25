@@ -14,6 +14,9 @@ leva.json ─► validar ─► masters ─🚦─► frames ─🚦─► víde
 
 🚦 = gate humano: você olha a grade e aprova antes de gastar geração de vídeo.
 
+> **Uso diário no molde "soda"** (vídeos curtos, 3 por avatar por dia): veja
+> [`docs/USO-DIARIO.md`](docs/USO-DIARIO.md).
+
 ## Três formas de gerar (o resto do pipeline é idêntico)
 
 | gerador | como funciona | custo | quando usar |

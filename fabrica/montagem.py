@@ -27,6 +27,15 @@ class Opcoes:
     crop_wm: bool = False
     min_dur: float = 60.0
     insert_seg: float = 1.6
+    palavras_tela: tuple = ()  # frases que saltam na tela quando são faladas (ex.: "soda", "follow me")
+    palavras_tela_so_final: bool = False  # só na última cena (o CTA), não a cada menção no vídeo
+
+    @classmethod
+    def da_leva(cls, cfg):
+        campos = {k: v for k, v in (cfg or {}).items() if k in cls.__dataclass_fields__}
+        if "palavras_tela" in campos:
+            campos["palavras_tela"] = tuple(campos["palavras_tela"])
+        return cls(**campos)
 
 
 def _fim_da_fala(src, idioma):
@@ -145,6 +154,24 @@ def tempos_legenda(fala, ini, fim, palavras_whisper=None):
     return res
 
 
+def tempo_de_frase(fala, frase, ini, fim, palavras_whisper=None):
+    """(t0, t1) de quando a frase é dita no segmento, ou None se ela não está na fala."""
+    alvo = transcricao.normaliza(frase)
+    if not alvo or " ".join(alvo) not in " ".join(transcricao.normaliza(fala)):
+        return None
+    if palavras_whisper:
+        toks = [(transcricao.normaliza(w) or [""])[0] for w, _, _ in palavras_whisper]
+        for i in range(len(toks) - len(alvo) + 1):
+            if toks[i:i + len(alvo)] == alvo:
+                return palavras_whisper[i][1], palavras_whisper[i + len(alvo) - 1][2]
+    baixa = fala.lower()
+    pos = baixa.find(frase.lower())
+    if pos < 0:
+        return None
+    t0 = ini + (fim - ini) * pos / len(fala)
+    return t0, t0 + (fim - ini) * len(frase) / len(fala)
+
+
 def _ass_t(t):
     return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{t % 60:05.2f}"
 
@@ -154,13 +181,18 @@ def escrever_ass(eventos, destino, fonte="DejaVu Sans", tam=66, margem_v=560):
            "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, "
            "Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, "
            "MarginV, Encoding\n"
-           f"Style: Leg,{fonte},{tam},&H0000FFFF,&H0000FFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,6,2,2,60,60,{margem_v},1\n\n"
+           f"Style: Leg,{fonte},{tam},&H0000FFFF,&H0000FFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,6,2,2,60,60,{margem_v},1\n"
+           f"Style: Destaque,{fonte},118,&H0000FFFF,&H0000FFFF,&H00000000,&H64000000,-1,0,0,0,100,100,2,0,1,8,3,2,60,60,700,1\n\n"
            "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
     with open(destino, "w", encoding="utf-8") as f:
         f.write(cab)
-        for txt, a, b in eventos:
+        for ev in eventos:
+            txt, a, b = ev[:3]
+            estilo = ev[3] if len(ev) > 3 else "Leg"
             txt = txt.replace("{", "(").replace("}", ")")
-            f.write(f"Dialogue: 0,{_ass_t(a)},{_ass_t(b)},Leg,,0,0,0,,{txt}\n")
+            if estilo == "Destaque":  # entra com um "pop" (130% → 100%)
+                txt = "{\\fscx130\\fscy130\\t(0,140,\\fscx100\\fscy100)}" + txt
+            f.write(f"Dialogue: 0,{_ass_t(a)},{_ass_t(b)},{estilo},,0,0,0,,{txt}\n")
     return destino
 
 
@@ -209,15 +241,21 @@ def montar_ad(ad, pastas, idioma="pt", opcoes=None, indice=0, log=print):
     dur_total = midia.duracao(cat)
 
     eventos, t = [], 0.0
-    if op.legenda:
-        for arq, fala, desloc in segmentos:
+    if op.legenda or op.palavras_tela:
+        for i_seg, (arq, fala, desloc) in enumerate(segmentos):
             d = midia.duracao(arq)
             if fala:
                 ws = transcricao.palavras(arq, idioma)
                 if ws and desloc:
                     ws = [w for w in ws if w[1] >= desloc - 0.1]
-                for txt, a, b in tempos_legenda(fala, desloc, d - 0.05, ws or None):
-                    eventos.append((txt, t + a, min(t + b, t + d)))
+                if op.legenda:
+                    for txt, a, b in tempos_legenda(fala, desloc, d - 0.05, ws or None):
+                        eventos.append((txt, t + a, min(t + b, t + d)))
+                ultima = i_seg == len(segmentos) - 1
+                for frase in (op.palavras_tela if ultima or not op.palavras_tela_so_final else ()):  # keyword >= 0,9s na tela
+                    tf = tempo_de_frase(fala, frase, desloc, d - 0.05, ws or None)
+                    if tf:
+                        eventos.append((frase.upper(), t + tf[0], min(t + d, max(t + tf[1] + 0.3, t + tf[0] + 0.9)), "Destaque"))
             t += d
 
     ins, filtros, entrada, n = ["-i", cat], [], "[0:v]", 1
@@ -252,5 +290,5 @@ def montar_ad(ad, pastas, idioma="pt", opcoes=None, indice=0, log=print):
         raise midia.ErroMidia(f"{final} saiu corrompido")
     dur = midia.duracao(final)
     aviso = f" ⚠️ {dur:.0f}s < mínimo {op.min_dur:.0f}s" if dur < op.min_dur else ""
-    log(f"  ✓ {ad['id']}: {dur:.1f}s, {len(segmentos)} segmentos, {len(eventos)} legendas{aviso}")
+    log(f"  ✓ {ad['id']}: {dur:.1f}s, {len(segmentos)} segmentos, {len(eventos)} textos na tela{aviso}")
     return final
