@@ -1,8 +1,9 @@
 # Uso diário — molde "soda" (Windows / cmd)
 
-Formato: vídeos de ~20s, 3 cenas de 8s (gancho → preparo → CTA), sem legenda e sem headline,
-com **SODA** e **FOLLOW ME** saltando na tela no CTA. Cada avatar recebe 3 vídeos por dia,
-com gancho, abertura e parte do corpo diferentes, sem repetir combinação de um dia para o outro.
+Formato: vídeos de ~15-25s em 4 cenas — **gancho → preparo → explicação → CTA** — sem legenda
+e sem headline, com **SODA** e **FOLLOW ME** saltando na tela no CTA. Cada avatar recebe 3 vídeos
+por dia, um de cada versão (barriga, costas, gordura), com ganchos visuais diferentes, sem repetir
+combinação de um dia para o outro. Arquivos por vídeo: `_1` a `_4` (e `_0` quando o gancho tem insert).
 
 ## Uma vez só
 
@@ -63,6 +64,7 @@ gere de novo no Flow e rode `ingerir` + `montar --so alice-1`.
 
 ## Editar as copys e os ganchos
 
-Tudo fica em `modelos\soda.json`: aberturas (com `{parte}`), partes do corpo, preparos, CTAs,
-ganchos visuais (em inglês, abrindo na ação) e o que aparece na tela. Depois de editar, rode
-`python -m pytest -q`: o teste confere se todas as falas ficaram entre 15 e 26 palavras.
+Tudo fica em `modelos\soda.json`: as versões (3 falas cada: gancho, preparo, explicação), a fala
+do CTA, os ganchos visuais, preparos, explicações e CTAs visuais (em inglês, abrindo na ação) e o
+que aparece na tela. Para uma versão nova, copie um bloco de `versoes` e troque o nome e as 3 falas.
+Depois de editar, rode `python -m pytest -q`: o teste confere se cada fala ficou entre 8 e 26 palavras.

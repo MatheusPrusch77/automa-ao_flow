@@ -1,8 +1,9 @@
 """Gera o leva.json do dia a partir de um MODELO (modelos/*.json) e da lista de AVATARES.
 
-Cada vídeo = gancho (abertura) → preparo (meio) → CTA, uma peça de cada lista do modelo.
-Não repete a mesma combinação para o mesmo avatar (histórico em disco) e, dentro do dia,
-cada avatar recebe ganchos e aberturas diferentes nos seus vídeos.
+Cada vídeo = 4 cenas: gancho → preparo → explicação → CTA. As falas vêm de uma VERSÃO do
+modelo (+ o CTA fixo); o visual combina gancho, preparo, explicação e CTA. No mesmo dia,
+cada avatar recebe versões e ganchos diferentes; entre dias, nenhuma combinação se repete
+para o mesmo avatar (histórico em disco).
 """
 import json
 import os
@@ -16,15 +17,36 @@ def slug(nome):
     return re.sub(r"[^a-z0-9]+", "-", nome.lower()).strip("-")
 
 
-def _troca(txt, sexo, parte=""):
+def _troca(txt, sexo):
     S, s, pos = PRONOMES.get(sexo, PRONOMES["f"])
-    return txt.replace("{S}", S).replace("{s}", s).replace("{pos}", pos).replace("{parte}", parte)
+    return txt.replace("{S}", S).replace("{s}", s).replace("{pos}", pos)
 
 
 def combinacoes(modelo):
-    """Todas as combinações possíveis (índices), na ordem: abertura, parte, meio, cta, gancho."""
-    return [(a, p, m, c, g) for a in range(len(modelo["aberturas"])) for p in range(len(modelo["partes"]))
-            for m in range(len(modelo["meios"])) for c in range(len(modelo["ctas"])) for g in range(len(modelo["ganchos"]))]
+    """Todas as combinações (índices): versão, gancho, preparo, explicação, cta visual."""
+    return [(v, g, p, e, c) for v in range(len(modelo["versoes"])) for g in range(len(modelo["ganchos"]))
+            for p in range(len(modelo["preparos"])) for e in range(len(modelo["explicacoes"]))
+            for c in range(len(modelo["ctas_visuais"]))]
+
+
+def _escolher(livres, por_avatar, modelo, uso_mecanica):
+    """Até por_avatar combinações com versão e gancho diferentes (relaxa a versão se faltar)."""
+    for exigir_versao in (True, False):
+        escolhidas, versoes, ganchos = [], set(), set()
+        for c in livres:
+            if c[1] in ganchos or (exigir_versao and c[0] in versoes):
+                continue
+            escolhidas.append(c)
+            versoes.add(c[0])
+            ganchos.add(c[1])
+            if len(escolhidas) == por_avatar:
+                break
+        if len(escolhidas) == por_avatar or not exigir_versao:
+            break
+    for c in escolhidas:
+        mec = modelo["ganchos"][c[1]]["mecanica"]
+        uso_mecanica[mec] = uso_mecanica.get(mec, 0) + 1
+    return escolhidas
 
 
 def gerar(modelo, avatares, por_avatar=3, semente=None, historico=None, base_avatares="."):
@@ -44,40 +66,31 @@ def gerar(modelo, avatares, por_avatar=3, semente=None, historico=None, base_ava
         usadas = {tuple(x) for x in historico.get(pk, [])}
         livres = [c for c in todas if c not in usadas] or todas  # esgotou: recomeça o ciclo
         rnd.shuffle(livres)
-        livres.sort(key=lambda c: uso_mecanica.get(modelo["ganchos"][c[4]]["mecanica"], 0))  # sort estável: mantém o sorteio
-        escolhidas, ganchos_dia, aberturas_dia = [], set(), set()
-        for c in livres:  # no mesmo dia, gancho e abertura diferentes em cada vídeo do avatar
-            if c[4] in ganchos_dia or c[0] in aberturas_dia:
-                continue
-            escolhidas.append(c)
-            mec = modelo["ganchos"][c[4]]["mecanica"]
-            uso_mecanica[mec] = uso_mecanica.get(mec, 0) + 1
-            ganchos_dia.add(c[4])
-            aberturas_dia.add(c[0])
-            if len(escolhidas) == por_avatar:
-                break
-        for k, (a, p, m, c, g) in enumerate(escolhidas, 1):
-            parte = modelo["partes"][p]
+        livres.sort(key=lambda c: uso_mecanica.get(modelo["ganchos"][c[1]]["mecanica"], 0))  # sort estável: mantém o sorteio
+        for k, (v, g, p, e, c) in enumerate(_escolher(livres, por_avatar, modelo, uso_mecanica), 1):
+            versao = modelo["versoes"][v]
+            f1, f2, f3 = versao["falas"]
             gancho = modelo["ganchos"][g]
             bloco = {"mecanica": gancho["mecanica"], "persona": pk,
-                     "acao_visual": _troca(gancho["acao_visual"], sexo),
-                     "gancho_fala": _troca(modelo["aberturas"][a], sexo, parte)}
+                     "acao_visual": _troca(gancho["acao_visual"], sexo), "gancho_fala": f1}
             if gancho.get("insert_visual"):
                 bloco["insert_visual"] = _troca(gancho["insert_visual"], sexo)
+            expl = modelo["explicacoes"][e]
             itens.append({
                 "id": f"{pk}-{k}",
-                "_combinacao": {"abertura": a, "parte": parte, "meio": m, "cta": c, "gancho": g},
+                "_combinacao": {"versao": versao["nome"], "gancho": g, "preparo": p, "explicacao": e, "cta": c},
                 "gancho": bloco,
                 "cenas": [
-                    {"n": 2, "tipo": "D", "persona": pk, "acao": _troca(rnd.choice(modelo["demos"]), sexo),
-                     "fala": modelo["meios"][m]},
-                    {"n": 3, "tipo": "T-cta", "persona": pk, "acao": _troca(rnd.choice(modelo["ctas_visuais"]), sexo),
-                     "fala": modelo["ctas"][c]},
+                    {"n": 2, "tipo": "D", "persona": pk, "acao": _troca(modelo["preparos"][p], sexo), "fala": f2},
+                    {"n": 3, "tipo": expl["tipo"], "persona": pk, "acao": _troca(expl["acao"], sexo), "fala": f3},
+                    {"n": 4, "tipo": "T-cta", "persona": pk, "acao": _troca(modelo["ctas_visuais"][c], sexo),
+                     "fala": modelo["cta_fala"]},
                 ],
             })
-            novos.setdefault(pk, []).append([a, p, m, c, g])
+            novos.setdefault(pk, []).append([v, g, p, e, c])
     leva = {"idioma": modelo.get("idioma", "en"), "formato": modelo.get("formato", "curto"),
-            "montagem": modelo.get("montagem", {}), "personas": personas, "itens": itens}
+            "fala_min": modelo.get("fala_min", 15), "montagem": modelo.get("montagem", {}),
+            "personas": personas, "itens": itens}
     return leva, novos
 
 

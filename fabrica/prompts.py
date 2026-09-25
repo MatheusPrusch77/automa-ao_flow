@@ -96,4 +96,6 @@ def prompt_video(cena, persona, idioma="pt"):
         fala_blk = f'The person speaks in {lingua} to the lens, {voz}, lips in sync, no other voices: "{fala}"'
     else:
         fala_blk = "No speech. Ambient sound only, no music."
+    if fala and len(fala.split()) < 15:  # fala curta: sem isso o gerador inventa frases no tempo que sobra do clipe
+        fala_blk += " The person says ONLY this sentence, then stops talking and silently continues the action."
     return f"{corpo} {regras} {fala_blk}".replace("  ", " ").strip()

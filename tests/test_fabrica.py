@@ -149,8 +149,9 @@ def _modelo_soda():
 
 def test_modelo_soda_todas_as_falas_na_faixa():
     m = _modelo_soda()
-    falas = [a.replace("{parte}", p) for a in m["aberturas"] for p in m["partes"]] + m["meios"] + m["ctas"]
-    fora = [(L.palavras(f), f) for f in falas if not L.FALA_MIN <= L.palavras(f) <= L.FALA_MAX]
+    falas = [f for v in m["versoes"] for f in v["falas"]] + [m["cta_fala"]]
+    assert all(len(v["falas"]) == 3 for v in m["versoes"])
+    fora = [(L.palavras(f), f) for f in falas if not m["fala_min"] <= L.palavras(f) <= L.FALA_MAX]
     assert not fora, fora
 
 
@@ -162,14 +163,33 @@ def test_gerar_leva_valida_e_sem_repeticao(tmp_path):
     leva, novos = gerar(m, AVATARES_TESTE, por_avatar=3, semente=7, base_avatares=str(tmp_path))
     norm, rel = L.normalizar(leva)
     assert rel.ok and not rel.avisos, rel.texto()
-    assert len(norm["ads"]) == 6
-    for pk in ("ana", "bob"):  # no mesmo dia: 3 ganchos e 3 aberturas diferentes por avatar
+    assert len(norm["ads"]) == 6 and all(len(ad["cenas"]) >= 4 for ad in norm["ads"])
+    assert norm["ads"][0]["cenas"][-1]["fala"] == m["cta_fala"]  # CTA sempre na última cena, sozinho
+    for pk in ("ana", "bob"):  # no mesmo dia: as 3 versões e 3 ganchos diferentes por avatar
         combos = novos[pk]
-        assert len({c[4] for c in combos}) == 3 and len({c[0] for c in combos}) == 3
+        assert len({c[0] for c in combos}) == 3 and len({c[1] for c in combos}) == 3
     leva2, novos2 = gerar(m, AVATARES_TESTE, 3, semente=7, historico=novos, base_avatares=str(tmp_path))
     for pk in novos:  # dia seguinte: nenhuma combinação repetida
         assert not {tuple(c) for c in novos[pk]} & {tuple(c) for c in novos2[pk]}
     assert "She" in leva["itens"][0]["gancho"]["acao_visual"] and "He" in leva["itens"][3]["gancho"]["acao_visual"]
+
+
+def test_fala_curta_ganha_trava_no_prompt():
+    leva, rel = L.normalizar({"idioma": "en", "fala_min": 8,
+                              "personas": {"a": {"descricao_visual": "a woman in a red shirt", "cenario": "kitchen",
+                                                 "voz": "woman around 40, warm voice"}},
+                              "itens": [{"id": "X", "cenas": [{"n": 2, "tipo": "D", "persona": "a", "acao": "she stirs a glass",
+                                                               "fala": "One teaspoon of baking soda, half a lemon, and a pinch of salt."}]}]})
+    assert rel.ok, rel.texto()
+    assert "says ONLY this sentence" in leva["ads"][0]["cenas"][0]["prompt_video"]
+
+
+def test_corte_na_ultima_palavra_do_roteiro(monkeypatch):
+    ws = [(w, i * 0.4, i * 0.4 + 0.3) for i, w in enumerate("one two three four five extra words invented".split())]
+    monkeypatch.setattr(montagem.transcricao, "palavras", lambda *a, **k: ws)
+    monkeypatch.setattr(montagem.midia, "duracao", lambda *a: 8.0)
+    ini, fim = montagem._fim_da_fala("x.mp4", "en", "one two three four five")
+    assert ini == 0.0 and fim == pytest.approx(1.6 + 0.3 + 0.18)
 
 
 def test_palavra_na_tela_acha_o_momento():

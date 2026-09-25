@@ -55,7 +55,7 @@ def _placeholder(txt):
     return bool(re.search(r"\{\{[^}]*\}\}|\{[A-Z_][A-Z0-9_]*\}", txt or ""))
 
 
-def _checa_fala(onde, fala, rel):
+def _checa_fala(onde, fala, rel, minimo=FALA_MIN):
     if not fala:
         return
     if _placeholder(fala):
@@ -65,11 +65,11 @@ def _checa_fala(onde, fala, rel):
     if "..." in fala or "…" in fala:
         rel.erros.append(f"{onde}: reticências na fala fazem o gerador improvisar/embolar — use vírgula ou ponto")
     n = palavras(fala)
-    if n < FALA_MIN:
-        rel.erros.append(f"{onde}: fala com {n} palavras (<{FALA_MIN}) — o gerador inventa fala no tempo vazio; junte com a cena vizinha")
+    if n < minimo:
+        rel.erros.append(f"{onde}: fala com {n} palavras (<{minimo}) — o gerador inventa fala no tempo vazio; junte com a cena vizinha")
     elif n > FALA_MAX:
         rel.erros.append(f"{onde}: fala com {n} palavras (>{FALA_MAX}) — não cabe em 8s; divida em fim de frase")
-    elif n < FALA_ALVO[0]:
+    elif minimo == FALA_MIN and n < FALA_ALVO[0]:
         rel.avisos.append(f"{onde}: fala com {n} palavras, abaixo do alvo {FALA_ALVO[0]}-{FALA_ALVO[1]}")
     caps = re.search(r"\b[A-ZÀ-Ú]{3,}\b", fala)
     if caps:
@@ -94,6 +94,8 @@ def normalizar(dados, base="."):
     rel = Relatorio()
     idioma = dados.get("idioma", "pt")
     curto = dados.get("formato") == "curto"  # 15-30s, 1 avatar com vários vídeos no dia: relaxa as regras de corpo longo
+    # fala curta (< 15) só com fala_min explícito: o prompt manda calar e a montagem corta na última palavra do roteiro
+    fala_min = max(8, int(dados.get("fala_min", FALA_MIN)))
     personas = dados.get("personas") or {}
     if not personas:
         rel.erros.append("leva sem 'personas'")
@@ -146,7 +148,7 @@ def normalizar(dados, base="."):
                 rel.avisos.append(f"{ad}.gancho tem instrução de montagem (split/TOP/BOTTOM) — isso é da edição, não do gerador")
             if not any(c in f"{av} {iv}".lower() for c in CHOQUE):
                 sem_choque.append(ad)
-            _checa_fala(f"{ad}.gancho_fala", g.get("gancho_fala", ""), rel)
+            _checa_fala(f"{ad}.gancho_fala", g.get("gancho_fala", ""), rel, fala_min)
             if not g.get("gancho_fala"):
                 rel.erros.append(f"{ad}.gancho sem gancho_fala — fala no segundo zero é lei")
             mecs.append(mec)
@@ -175,7 +177,7 @@ def normalizar(dados, base="."):
             if not c.get("acao"):
                 rel.erros.append(f"{onde}: sem 'acao' (descrição visual em inglês)")
             _checa_prompt_en(f"{onde}.acao", c.get("acao", ""), rel)
-            _checa_fala(onde, c.get("fala", ""), rel)
+            _checa_fala(onde, c.get("fala", ""), rel, fala_min)
             cenas.append(dict(c))
 
         cenas.sort(key=lambda c: float(c["n"]))

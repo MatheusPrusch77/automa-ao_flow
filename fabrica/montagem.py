@@ -38,12 +38,15 @@ class Opcoes:
         return cls(**campos)
 
 
-def _fim_da_fala(src, idioma):
-    """(inicio, fim) útil do clipe cru: corta a espera antes da fala e o silêncio/fade do final."""
+def _fim_da_fala(src, idioma, fala=""):
+    """(inicio, fim) útil do clipe cru: corta a espera antes da fala e o silêncio/fade do final.
+    Com whisper, corta na ÚLTIMA PALAVRA DO ROTEIRO: fala inventada pelo gerador depois dela fica de fora."""
     dur = midia.duracao(src)
     ws = transcricao.palavras(src, idioma)
     if ws:
-        return max(0.0, ws[0][1] - 0.08), min(dur, ws[-1][2] + 0.18)
+        n = len(fala.split()) or len(ws)
+        ultima = ws[min(n, len(ws)) - 1]
+        return max(0.0, ws[0][1] - 0.08), min(dur, ultima[2] + 0.18)
     sil = midia.silencios(src, "-30dB", 0.25)
     ini, fim = 0.0, dur
     if sil and sil[0][0] <= 0.05 and sil[0][1] < 1.5:
@@ -213,7 +216,7 @@ def montar_ad(ad, pastas, idioma="pt", opcoes=None, indice=0, log=print):
     def preparar(c, cortar_fala=True):
         src = pastas.clipe(c["chave"])
         base = os.path.join(wk, c["chave"])
-        ini, fim = _fim_da_fala(src, idioma) if (cortar_fala and c.get("fala")) else (0.0, None)
+        ini, fim = _fim_da_fala(src, idioma, c.get("fala", "")) if (cortar_fala and c.get("fala")) else (0.0, None)
         p = midia.normalizar(src, base + "_n.mp4", ini, fim, op.crop_wm)
         if op.aparar and c.get("fala"):
             p = _sem_silencio_interno(p, base + "_s.mp4")
